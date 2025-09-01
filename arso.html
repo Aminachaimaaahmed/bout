@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>بوتيك — مع دخول Admin بكلمة مرور</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <h1>🛒 بوتيك بسيط</h1>
+    <div class="top-actions">
+      <button id="btn-open-admin" class="btn small">دخول Admin</button>
+      <button id="btn-logout-admin" class="btn small hidden">خروج Admin</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 🔹 عرض المنتجات في الأعلى -->
+    <section>
+      <h2>📦 المنتجات</h2>
+      <div class="product-list" id="productList"></div>
+    </section>
+
+    <!-- 🔹 العربة + الاستمارة تحت -->
+    <section class="cart">
+      <h2>🛍️ عربة التسوق</h2>
+      <div id="cartItems"></div>
+      <h3>المجموع: <span id="totalPrice">0</span> دج</h3>
+
+      <h3>✍️ معلومات المشتري</h3>
+      <input id="userName" placeholder="الاسم الكامل" />
+      <input id="userEmail" placeholder="الإيميل" type="email" />
+      <input id="userPhone" placeholder="رقم الهاتف" />
+      <button id="btn-send-order" class="btn primary">إرسال الطلب</button>
+    </section>
+
+    <!-- 🔹 لوحة الإدارة (تبان غير للـ Admin) -->
+    <section class="admin-panel hidden" id="adminPanel">
+      <h2>👨‍💻 لوحة الإدارة (محمية)</h2>
+
+      <div class="admin-block">
+        <h3>إضافة منتج</h3>
+        <input id="prodName" placeholder="اسم المنتج" />
+        <input id="prodPrice" placeholder="السعر" type="number" />
+        <input id="prodImage" placeholder="رابط صورة (URL)" />
+        <div style="margin-top:8px">
+          <button id="btn-add-product" class="btn">إضافة</button>
+        </div>
+      </div>
+
+      <div class="admin-block">
+        <h3>قائمة المنتجات</h3>
+        <div id="adminProducts"></div>
+      </div>
+
+      <div class="admin-block">
+        <h3>طلبات الزبائن</h3>
+        <div id="ordersList"></div>
+        <div style="margin-top:8px">
+          <button id="btn-clear-orders" class="btn danger">حذف كل الطلبات</button>
+        </div>
+      </div>
+
+      <div class="admin-block">
+        <h3>كلمة مرور الادمن</h3>
+        <small class="hint">كلمة المرور الافتراضية: <code>admin123</code></small>
+        <input id="adminOldPwd" placeholder="كلمة المرور الحالية" type="password" />
+        <input id="adminNewPwd" placeholder="كلمة المرور الجديدة" type="password" />
+        <div style="margin-top:8px">
+          <button id="btn-change-pwd" class="btn">تغيير كلمة المرور</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 🔹 نافذة الدخول -->
+  <dialog id="loginDialog">
+    <form method="dialog" class="dialog-form" onsubmit="return false;">
+      <h3>دخول Admin</h3>
+      <input id="loginPwd" type="password" placeholder="أدخل كلمة المرور" />
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button id="loginCancel" class="btn">إلغاء</button>
+        <button id="loginSubmit" class="btn primary">دخول</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
