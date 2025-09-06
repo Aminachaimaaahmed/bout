@@ -1,170 +1,112 @@
-// ✅ تهيئة EmailJS
-(function(){
-  emailjs.init("Rh0587UVj7X-V-Q-k");
-})();
+// إعداد Google Sheet
+const sheetID = "1qZDFFzhS4JxKFnlcauirnDRTggBwk6fbINrgHSLGBzw";
+const sheetName = "Sheet1";
+const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
 
+// عناصر DOM
+const productList = document.getElementById('productList');
+const cartLines = document.getElementById('cartLines');
+const totalPriceEl = document.getElementById('totalPrice');
+const orderField = document.getElementById('orderField');
+const totalField = document.getElementById('totalField');
+const searchInput = document.getElementById('search');
+const refreshBtn = document.getElementById('refreshBtn');
+const clearCartBtn = document.getElementById('clearCartBtn');
+
+// الحالة
+let products = [];
 let cart = [];
-let products = JSON.parse(localStorage.getItem("products") || "[]");
-let orders = JSON.parse(localStorage.getItem("orders") || "[]");
-let adminPwd = localStorage.getItem("adminPwd") || "admin123";
 
-const productList = document.getElementById("productList");
-const cartItems = document.getElementById("cartItems");
-const totalPrice = document.getElementById("totalPrice");
-const adminPanel = document.getElementById("adminPanel");
-const adminProducts = document.getElementById("adminProducts");
-const ordersList = document.getElementById("ordersList");
-
-// 📦 عرض المنتجات
-function renderProducts(){
-  productList.innerHTML = "";
-  products.forEach((p,i)=>{
-    let div = document.createElement("div");
-    div.className="product";
-    div.innerHTML = `
-      <img src="${p.image}" alt="">
-      <div class="info">
-        <b>${p.name}</b>
-        <span>${p.price} دج</span>
-      </div>
-      <button class="btn" onclick="addToCart(${i})">➕</button>
-    `;
-    productList.appendChild(div);
-  });
-  renderAdminProducts();
-}
-function renderAdminProducts(){
-  adminProducts.innerHTML="";
-  products.forEach((p,i)=>{
-    let d=document.createElement("div");
-    d.className="product";
-    d.innerHTML=`<b>${p.name}</b> - ${p.price} دج 
-    <button class="btn danger" onclick="deleteProduct(${i})">حذف</button>`;
-    adminProducts.appendChild(d);
-  });
+// تحميل المنتجات من Google Sheets
+async function loadProducts(){
+  productList.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#888">...جاري التحميل</div>';
+  try {
+    const res = await fetch(gvizUrl);
+    const text = await res.text();
+    const json = JSON.parse(text.substr(47).slice(0, -2));
+    const rows = json.table.rows || [];
+    products = rows.map(r => ({
+      name: r.c[0] ? r.c[0].v : '',
+      price: r.c[1] ? Number(r.c[1].v) : 0,
+      image: r.c[2] ? r.c[2].v : ''
+    })).filter(p => p.name);
+    renderProducts(products);
+  } catch (err) {
+    productList.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#c00">⚠️ تأكدي أن الجدول Public</div>';
+  }
 }
 
-// 🛒 العربة
+// عرض المنتجات
+function renderProducts(list){
+  if(!list.length){
+    productList.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#666">لا توجد منتجات</div>';
+    return;
+  }
+  productList.innerHTML = '';
+  list.forEach((p,i)=>{
+    const box=document.createElement('div');
+    box.className='product';
+    box.innerHTML=`
+      <img src="${p.image || 'https://via.placeholder.com/400x300?text=No+Image'}" alt="${p.name}" />
+      <h3>${p.name}</h3>
+      <div class="price">${p.price} دج</div>
+      <div class="actions">
+        <button class="btn primary" onclick="addToCart(${i})">➕ أضف</button>
+      </div>`;
+    productList.appendChild(box);
+  });
+}
+
+// إضافة للعربة
 function addToCart(i){
-  cart.push(products[i]);
-  renderCart();
+  const p=products[i];
+  if(!p) return;
+  const found=cart.find(x=>x.name===p.name);
+  if(found) found.qty++;
+  else cart.push({...p,qty:1});
+  updateCartUI();
 }
-function renderCart(){
-  cartItems.innerHTML="";
+
+// تحديث العربة
+function updateCartUI(){
+  cartLines.innerHTML='';
   let total=0;
   cart.forEach((c,i)=>{
-    total+=Number(c.price);
-    let d=document.createElement("div");
-    d.textContent=`${c.name} - ${c.price} دج`;
-    cartItems.appendChild(d);
+    total+=c.price*c.qty;
+    const line=document.createElement('div');
+    line.className='cart-line';
+    line.innerHTML=`
+      <div>${c.name} (${c.qty}×${c.price})</div>
+      <div>${c.price*c.qty} دج <button onclick="removeFromCart(${i})">حذف</button></div>`;
+    cartLines.appendChild(line);
   });
-  totalPrice.textContent=total;
+  totalPriceEl.textContent=total+' دج';
+  totalField.value=total;
+  orderField.value=cart.map(c=>`${c.name} - ${c.qty} × ${c.price} دج`).join('\n');
+}
+function removeFromCart(i){
+  cart.splice(i,1);
+  updateCartUI();
 }
 
-// ✉️ إرسال الطلب
-function submitOrder(){
-  let name=document.getElementById("userName").value;
-  let email=document.getElementById("userEmail").value;
-  let phone=document.getElementById("userPhone").value;
-  if(!name || !email || !phone || cart.length===0){
-    return alert("⚠️ املأ جميع البيانات وأضف منتجات.");
+// إرسال الفورم
+function prepareAndSubmit(e){
+  if(cart.length===0){
+    alert("⚠️ العربة فارغة");
+    e.preventDefault();return false;
   }
-
-  let orderDetails=cart.map(c=>`${c.name} - ${c.price} دج`).join("\n");
-
-  emailjs.send("service_ena6hao","template_664ej1s",{
-    user_name:name,
-    user_email:email,
-    user_phone:phone,
-    order_list:orderDetails,
-    total_price:totalPrice.textContent
-  }).then(()=>{
-    alert("✅ الطلب توصّل بنجاح!");
-    orders.push({name,email,phone,items:cart,total:totalPrice.textContent});
-    localStorage.setItem("orders",JSON.stringify(orders));
-    cart=[];
-    renderCart();
-    renderOrders();
-  },err=>{
-    alert("❌ خطأ: "+JSON.stringify(err));
-  });
+  return true;
 }
 
-// 📋 عرض الطلبات
-function renderOrders(){
-  ordersList.innerHTML="";
-  orders.forEach(o=>{
-    let div=document.createElement("div");
-    div.className="order";
-    div.innerHTML=`<b>${o.name}</b> - ${o.total} دج <div class="meta">${o.items.length} منتجات</div>`;
-    ordersList.appendChild(div);
-  });
-}
+// البحث
+searchInput.addEventListener('input',()=>{
+  const q=searchInput.value.toLowerCase();
+  renderProducts(products.filter(p=>p.name.toLowerCase().includes(q)));
+});
 
-// ➕ إضافة منتج
-document.getElementById("btn-add-product").onclick=function(){
-  let n=document.getElementById("prodName").value;
-  let p=document.getElementById("prodPrice").value;
-  let img=document.getElementById("prodImage").value;
-  if(!n||!p||!img) return;
-  products.push({name:n,price:p,image:img});
-  localStorage.setItem("products",JSON.stringify(products));
-  renderProducts();
-};
+// أزرار
+refreshBtn.addEventListener('click',loadProducts);
+clearCartBtn.addEventListener('click',()=>{cart=[];updateCartUI();});
 
-// ❌ حذف منتج
-function deleteProduct(i){
-  products.splice(i,1);
-  localStorage.setItem("products",JSON.stringify(products));
-  renderProducts();
-}
-
-// 🗑️ حذف الطلبات
-document.getElementById("btn-clear-orders").onclick=function(){
-  if(confirm("حذف جميع الطلبات؟")){
-    orders=[];
-    localStorage.setItem("orders","[]");
-    renderOrders();
-  }
-};
-
-// 🔑 إدارة الأدمن
-document.getElementById("btn-open-admin").onclick=function(){
-  document.getElementById("loginDialog").showModal();
-};
-document.getElementById("loginCancel").onclick=function(){
-  document.getElementById("loginDialog").close();
-};
-document.getElementById("loginSubmit").onclick=function(){
-  let pwd=document.getElementById("loginPwd").value;
-  if(pwd===adminPwd){
-    adminPanel.classList.remove("hidden");
-    document.getElementById("btn-logout-admin").classList.remove("hidden");
-    document.getElementById("btn-open-admin").classList.add("hidden");
-    document.getElementById("loginDialog").close();
-  } else {
-    alert("❌ كلمة المرور خاطئة");
-  }
-};
-document.getElementById("btn-logout-admin").onclick=function(){
-  adminPanel.classList.add("hidden");
-  this.classList.add("hidden");
-  document.getElementById("btn-open-admin").classList.remove("hidden");
-};
-document.getElementById("btn-change-pwd").onclick=function(){
-  let old=document.getElementById("adminOldPwd").value;
-  let nw=document.getElementById("adminNewPwd").value;
-  if(old===adminPwd && nw){
-    adminPwd=nw;
-    localStorage.setItem("adminPwd",nw);
-    alert("✅ تم تغيير كلمة المرور");
-  } else alert("❌ خطأ في كلمة المرور");
-};
-
-// 📌 زر إرسال
-document.getElementById("btn-send-order").onclick=submitOrder;
-
-// 🔄 تحميل البيانات
-renderProducts();
-renderCart();
-renderOrders();
+// تحميل أولي
+loadProducts();

@@ -1,87 +1,68 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بوتيك — مع دخول Admin</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>متجر — Google Sheets + Getform</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <h1>🛒 بوتيك بسيط</h1>
-    <div class="top-actions">
-      <button id="btn-open-admin" class="btn small">دخول Admin</button>
-      <button id="btn-logout-admin" class="btn small hidden">خروج Admin</button>
-    </div>
+  <header>
+    <h1>🛒 المتجر — مباشر من Google Sheets</h1>
+    <div class="small-muted">المنتجات تُحدّث من الجدول تاعك</div>
   </header>
 
-  <main>
-    <!-- المنتجات -->
+  <div class="container">
     <section>
-      <h2>📦 المنتجات</h2>
-      <div class="product-list" id="productList"></div>
-    </section>
-
-    <!-- العربة -->
-    <section class="cart">
-      <h2>🛍️ عربة التسوق</h2>
-      <div id="cartItems"></div>
-      <h3>المجموع: <span id="totalPrice">0</span> دج</h3>
-
-      <h3>✍️ معلومات المشتري</h3>
-      <input id="userName" placeholder="الاسم الكامل">
-      <input id="userEmail" type="email" placeholder="الإيميل">
-      <input id="userPhone" placeholder="رقم الهاتف">
-      <button id="btn-send-order" class="btn primary">إرسال الطلب</button>
-    </section>
-
-    <!-- لوحة الإدارة -->
-    <section class="admin-panel hidden" id="adminPanel">
-      <h2>👨‍💻 لوحة الإدارة</h2>
-
-      <div class="admin-block">
-        <h3>➕ إضافة منتج</h3>
-        <input id="prodName" placeholder="اسم المنتج">
-        <input id="prodPrice" type="number" placeholder="السعر">
-        <input id="prodImage" placeholder="رابط صورة (URL)">
-        <button id="btn-add-product" class="btn">إضافة</button>
+      <div class="search-bar">
+        <input id="search" placeholder="🔍 ابحث عن اسم المنتج..." />
+        <button id="refreshBtn" class="btn ghost">⟳ تحديث</button>
       </div>
 
-      <div class="admin-block">
-        <h3>📋 قائمة المنتجات</h3>
-        <div id="adminProducts"></div>
-      </div>
-
-      <div class="admin-block">
-        <h3>📦 الطلبات</h3>
-        <div id="ordersList"></div>
-        <button id="btn-clear-orders" class="btn danger">حذف كل الطلبات</button>
-      </div>
-
-      <div class="admin-block">
-        <h3>🔑 كلمة مرور الادمن</h3>
-        <small>الافتراضية: <code>admin123</code></small>
-        <input id="adminOldPwd" type="password" placeholder="كلمة المرور الحالية">
-        <input id="adminNewPwd" type="password" placeholder="كلمة المرور الجديدة">
-        <button id="btn-change-pwd" class="btn">تغيير كلمة المرور</button>
+      <div id="productList" class="products">
+        <!-- المنتجات تتحط هنا -->
       </div>
     </section>
-  </main>
 
-  <!-- نافذة الدخول -->
-  <dialog id="loginDialog">
-    <form method="dialog" class="dialog-form" onsubmit="return false;">
-      <h3>دخول Admin</h3>
-      <input id="loginPwd" type="password" placeholder="أدخل كلمة المرور">
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
-        <button id="loginCancel" class="btn">إلغاء</button>
-        <button id="loginSubmit" class="btn primary">دخول</button>
-      </div>
-    </form>
-  </dialog>
+    <div class="order-area">
+      <form id="orderForm" class="form-card" action="https://getform.io/f/apjzzpqa" method="POST" onsubmit="return prepareAndSubmit(event)">
+        <h3>✍️ فورم الطلب</h3>
 
-  <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+        <label>الاسم الكامل</label>
+        <input id="userName" name="name" type="text" required />
+
+        <label>الإيميل</label>
+        <input id="userEmail" name="email" type="email" required />
+
+        <label>رقم الهاتف</label>
+        <input id="userPhone" name="phone" type="text" required />
+
+        <label>تفاصيل الطلب</label>
+        <textarea id="orderField" name="order" placeholder="قائمة المنتجات ستظهر هنا تلقائياً..." required></textarea>
+
+        <input id="totalField" name="total_price" type="hidden" value="0" />
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">✅ إرسال الطلب</button>
+          <button type="button" id="clearCartBtn" class="btn">🧹 مسح العربة</button>
+        </div>
+        <div class="small-muted">الطلبات تصل إلى لوحة Getform لديك.</div>
+      </form>
+
+      <aside class="summary">
+        <h4>🧾 ملخص الطلب</h4>
+        <div class="small-muted">اضغط على "أضف إلى الطلب" لإضافة منتجات.</div>
+        <div id="cartLines" class="cart-lines"></div>
+        <div class="total-line">
+          <div class="small-muted">المجموع</div>
+          <div id="totalPrice" class="total">0 دج</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>مصدر المنتجات: Google Sheets • الإرسال عبر Getform</footer>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
